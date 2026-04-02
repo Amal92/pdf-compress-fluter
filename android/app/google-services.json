@@ -1,0 +1,46 @@
+{
+  "project_info": {
+    "project_number": "20664146967",
+    "project_id": "pdf-compress-e7308",
+    "storage_bucket": "pdf-compress-e7308.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:20664146967:android:e2b420092e809f3e509052",
+        "android_client_info": {
+          "package_name": "com.basastudios.pdfcompressor"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "20664146967-89876sjk3enjume4rf5b2ar9a36phs5d.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA4hTb7vPWpAH80qKglABQYt0MQVO_gX90"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "20664146967-89876sjk3enjume4rf5b2ar9a36phs5d.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "20664146967-nbagpbsld3ar26c3nksh3e53bos8pn24.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.basastudios.pdfcompressor"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
