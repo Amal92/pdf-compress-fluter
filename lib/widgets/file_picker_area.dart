@@ -150,7 +150,7 @@ class FilePickerArea extends StatelessWidget {
 
       if (size > maxBytes) {
         if (!context.mounted) return;
-        await _showFileTooLargeDialog(
+        await showFileTooLargeDialog(
           context,
           fileName: picked.name,
           onUpgradeToPro: onUpgradeToPro,
@@ -173,9 +173,10 @@ class FilePickerArea extends StatelessWidget {
   }
 }
 
-Future<void> _showFileTooLargeDialog(
+Future<void> showFileTooLargeDialog(
   BuildContext context, {
   required String fileName,
+  int maxMb = _freePlanMaxMb,
   VoidCallback? onUpgradeToPro,
 }) async {
   final compression = Get.find<CompressionController>();
@@ -193,7 +194,7 @@ Future<void> _showFileTooLargeDialog(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              '$fileName exceeds the ${_freePlanMaxMb}MB limit.',
+              '$fileName exceeds the ${maxMb}MB limit.',
               style: const TextStyle(
                 fontSize: 15,
                 color: AppColors.textPrimary,
