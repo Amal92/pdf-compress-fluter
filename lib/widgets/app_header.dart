@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../constants/app_colors.dart';
+import '../screens/my_data_screen.dart';
 import '../services/usage_quota_service.dart';
 
 class AppHeader extends StatelessWidget implements PreferredSizeWidget {
@@ -66,7 +67,7 @@ class AppHeader extends StatelessWidget implements PreferredSizeWidget {
                             Border.all(color: AppColors.successBorder),
                       ),
                       child: const Text(
-                        'Premium',
+                        'Pro',
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
@@ -106,6 +107,33 @@ class AppHeader extends StatelessWidget implements PreferredSizeWidget {
                     ),
                   );
                 }),
+                const SizedBox(width: 8),
+                PopupMenuButton<String>(
+                  icon: const Icon(
+                    Icons.settings_outlined,
+                    color: AppColors.textSecondary,
+                  ),
+                  offset: const Offset(0, 44),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    side: const BorderSide(color: AppColors.border),
+                  ),
+                  onSelected: (value) {
+                    if (value == 'my_data') {
+                      Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => const MyDataScreen(),
+                        ),
+                      );
+                    }
+                  },
+                  itemBuilder: (context) => [
+                    const PopupMenuItem<String>(
+                      value: 'my_data',
+                      child: Text('My Data'),
+                    ),
+                  ],
+                ),
               ],
             ),
           ),

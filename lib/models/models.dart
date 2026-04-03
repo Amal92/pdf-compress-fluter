@@ -198,3 +198,63 @@ class JobStatusResponse {
         error: json['error'] as String?,
       );
 }
+
+class SessionJobInfo {
+  final String jobId;
+  final String status;
+
+  const SessionJobInfo({required this.jobId, required this.status});
+
+  factory SessionJobInfo.fromJson(Map<String, dynamic> json) => SessionJobInfo(
+        jobId: json['job_id'] as String,
+        status: json['status'] as String,
+      );
+}
+
+class ActiveCompressionSession {
+  final String sessionId;
+  final String filename;
+  final int? createdAt;
+  final int? expiresAt;
+  final List<SessionJobInfo> jobs;
+
+  const ActiveCompressionSession({
+    required this.sessionId,
+    required this.filename,
+    this.createdAt,
+    this.expiresAt,
+    this.jobs = const [],
+  });
+
+  factory ActiveCompressionSession.fromJson(Map<String, dynamic> json) {
+    final jobsJson = json['jobs'] as List<dynamic>?;
+    return ActiveCompressionSession(
+      sessionId: json['session_id'] as String,
+      filename: json['filename'] as String? ?? 'unknown',
+      createdAt: (json['created_at'] as num?)?.toInt(),
+      expiresAt: (json['expires_at'] as num?)?.toInt(),
+      jobs: jobsJson
+              ?.map((e) =>
+                  SessionJobInfo.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
+    );
+  }
+}
+
+class ActiveSessionsResponse {
+  final List<ActiveCompressionSession> sessions;
+
+  const ActiveSessionsResponse({required this.sessions});
+
+  factory ActiveSessionsResponse.fromJson(Map<String, dynamic> json) {
+    final list = json['sessions'] as List<dynamic>?;
+    return ActiveSessionsResponse(
+      sessions: list
+              ?.map((e) => ActiveCompressionSession.fromJson(
+                  e as Map<String, dynamic>))
+              .toList() ??
+          const [],
+    );
+  }
+}

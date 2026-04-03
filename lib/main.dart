@@ -7,7 +7,7 @@ import 'package:pdf_compress_mobile/utils/Translation/AppTranslations.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 import 'firebase_options.dart';
 import 'bindings/app_binding.dart';
-import 'screens/home_screen.dart';
+import 'screens/main_shell_screen.dart';
 import 'constants/app_colors.dart';
 
 Future<void> main() async {
@@ -88,7 +88,7 @@ class PdfCompressApp extends StatelessWidget {
         ),
         useMaterial3: true,
       ),
-      home: const HomeScreen(),
+      home: const MainShellScreen(),
     );
   }
 }

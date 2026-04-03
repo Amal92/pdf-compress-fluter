@@ -257,6 +257,16 @@ class CompressionController extends GetxController {
     files.removeWhere((f) => f.id == fileId);
   }
 
+  /// Removes local file rows when a session was deleted elsewhere (e.g. My Data).
+  void removeLocalFilesForSession(String sessionId) {
+    final ids = files.where((f) => f.sessionId == sessionId).map((f) => f.id);
+    for (final id in ids) {
+      _pollingTimers[id]?.cancel();
+      _pollingTimers.remove(id);
+    }
+    files.removeWhere((f) => f.sessionId == sessionId);
+  }
+
   void resetFile(String fileId) {
     _pollingTimers[fileId]?.cancel();
     _pollingTimers.remove(fileId);

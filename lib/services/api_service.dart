@@ -213,6 +213,14 @@ class ApiService extends GetxService {
     return UsageResponse.fromJson(response.data as Map<String, dynamic>);
   }
 
+  // ── Active sessions (My Data) ──
+
+  Future<ActiveSessionsResponse> getActiveSessions() async {
+    final response = await _dio.get('/pdf-compress/sessions/active');
+    return ActiveSessionsResponse.fromJson(
+        response.data as Map<String, dynamic>);
+  }
+
   // ── Delete session ──
 
   Future<void> deleteSession(String sessionId) async {
