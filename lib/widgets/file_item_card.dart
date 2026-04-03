@@ -1,17 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:get/get.dart';
 import '../constants/app_colors.dart';
 import '../controllers/compression_controller.dart';
 import '../models/models.dart';
 import 'compression_options.dart';
+import 'PayWall/PaywallDialog.dart';
 
 class FileItemCard extends StatelessWidget {
   final FileState fileState;
   final CompressionController compression;
+  final VoidCallback? onUpgradeToPro;
 
   const FileItemCard({
     super.key,
     required this.fileState,
     required this.compression,
+    this.onUpgradeToPro,
   });
 
   @override
@@ -83,7 +88,11 @@ class FileItemCard extends StatelessWidget {
                 const SizedBox(width: 6),
                 GestureDetector(
                   onTap: () => compression.removeFile(fileState.id),
-                  child: const Icon(Icons.close, size: 20, color: AppColors.textSecondary),
+                  child: const Icon(
+                    Icons.close,
+                    size: 20,
+                    color: AppColors.textSecondary,
+                  ),
                 ),
               ],
             ],
@@ -97,8 +106,9 @@ class FileItemCard extends StatelessWidget {
               child: LinearProgressIndicator(
                 value: fileState.uploadProgress / 100,
                 backgroundColor: AppColors.border,
-                valueColor:
-                    const AlwaysStoppedAnimation<Color>(AppColors.primary),
+                valueColor: const AlwaysStoppedAnimation<Color>(
+                  AppColors.primary,
+                ),
                 minHeight: 6,
               ),
             ),
@@ -111,9 +121,19 @@ class FileItemCard extends StatelessWidget {
             const SizedBox(height: 10),
             _ErrorBanner(
               message: fileState.error!,
-              showRetry: _isNetworkError(fileState.error) &&
+              showRetry:
+                  _isNetworkError(fileState.error) &&
                   fileState.status == FileStatus.failed,
               onRetry: () => compression.retryUpload(fileState.id),
+            ),
+          ],
+
+          // Upgrade CTA for quota exceeded
+          if (fileState.status == FileStatus.quotaExceeded) ...[
+            const SizedBox(height: 10),
+            _UpgradeToProButton(
+              compression: compression,
+              onUpgradeToPro: onUpgradeToPro,
             ),
           ],
 
@@ -176,7 +196,11 @@ class _DoneTopRow extends StatelessWidget {
           onTap: onBack,
           child: const Row(
             children: [
-              Icon(Icons.chevron_left, size: 18, color: AppColors.textSecondary),
+              Icon(
+                Icons.chevron_left,
+                size: 18,
+                color: AppColors.textSecondary,
+              ),
               Text(
                 'Back',
                 style: TextStyle(
@@ -218,27 +242,39 @@ class _StatusBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (label, bg, text) = switch (fileState.status) {
-      FileStatus.pending => ('Pending', const Color(0xFFF1F5F9), AppColors.textSecondary),
+      FileStatus.pending => (
+        'Pending',
+        const Color(0xFFF1F5F9),
+        AppColors.textSecondary,
+      ),
       FileStatus.uploading => (
-          'Uploading ${fileState.uploadProgress}%',
-          const Color(0xFFDBEAFE),
-          const Color(0xFF1D4ED8),
-        ),
-      FileStatus.uploaded => ('Ready', AppColors.successLight, AppColors.success),
+        'Uploading ${fileState.uploadProgress}%',
+        const Color(0xFFDBEAFE),
+        const Color(0xFF1D4ED8),
+      ),
+      FileStatus.uploaded => (
+        'Ready',
+        AppColors.successLight,
+        AppColors.success,
+      ),
       FileStatus.compressing => (
-          fileState.compressionStatus == CompressionJobStatus.queued
-              ? 'Queued'
-              : 'Processing',
-          const Color(0xFFFEF9C3),
-          const Color(0xFF854D0E),
-        ),
-      FileStatus.done => ('Complete', AppColors.successLight, AppColors.success),
+        fileState.compressionStatus == CompressionJobStatus.queued
+            ? 'Queued'
+            : 'Processing',
+        const Color(0xFFFEF9C3),
+        const Color(0xFF854D0E),
+      ),
+      FileStatus.done => (
+        'Complete',
+        AppColors.successLight,
+        AppColors.success,
+      ),
       FileStatus.failed => ('Failed', AppColors.errorLight, AppColors.error),
       FileStatus.quotaExceeded => (
-          'Quota Exceeded',
-          AppColors.errorLight,
-          AppColors.error,
-        ),
+        'Quota Exceeded',
+        AppColors.errorLight,
+        AppColors.error,
+      ),
     };
 
     return Container(
@@ -253,6 +289,48 @@ class _StatusBadge extends StatelessWidget {
           fontSize: 11,
           fontWeight: FontWeight.w600,
           color: text,
+        ),
+      ),
+    );
+  }
+}
+
+class _UpgradeToProButton extends StatelessWidget {
+  final CompressionController compression;
+  final VoidCallback? onUpgradeToPro;
+
+  const _UpgradeToProButton({required this.compression, this.onUpgradeToPro});
+
+  Future<void> _openPaywall() async {
+    final result = await Get.to(
+      () => PaywallDialog(fromOnboarding: false),
+      fullscreenDialog: true,
+    );
+    if (result == 'success') {
+      onUpgradeToPro?.call();
+      await compression.refreshSubscriptionStatus();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton.icon(
+        onPressed: _openPaywall,
+        icon: SvgPicture.asset('assets/svg/crown.svg', width: 18, height: 18),
+        label: const Text(
+          'Upgrade to Pro',
+          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+        ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.primary,
+          foregroundColor: Colors.white,
+          minimumSize: const Size.fromHeight(48),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          elevation: 0,
         ),
       ),
     );
@@ -291,8 +369,10 @@ class _ErrorBanner extends StatelessWidget {
             GestureDetector(
               onTap: onRetry,
               child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(8),
@@ -319,10 +399,7 @@ class _CompressingCard extends StatelessWidget {
   final FileState fileState;
   final CompressionController compression;
 
-  const _CompressingCard({
-    required this.fileState,
-    required this.compression,
-  });
+  const _CompressingCard({required this.fileState, required this.compression});
 
   @override
   Widget build(BuildContext context) {
@@ -428,8 +505,11 @@ class _DoneCard extends StatelessWidget {
               const Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.check_circle_outline,
-                      size: 18, color: AppColors.success),
+                  Icon(
+                    Icons.check_circle_outline,
+                    size: 18,
+                    color: AppColors.success,
+                  ),
                   SizedBox(width: 6),
                   Text(
                     'Compression complete!',
@@ -482,8 +562,11 @@ class _DoneCard extends StatelessWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(Icons.warning_amber_rounded,
-                    size: 16, color: AppColors.amber),
+                const Icon(
+                  Icons.warning_amber_rounded,
+                  size: 16,
+                  color: AppColors.amber,
+                ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -523,7 +606,10 @@ class _DoneCard extends StatelessWidget {
               onPressed: () => compression.deleteSession(fileState.id),
               style: OutlinedButton.styleFrom(
                 side: const BorderSide(color: AppColors.border),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 13,
+                ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),

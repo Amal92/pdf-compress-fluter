@@ -1,16 +1,20 @@
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
 import '../constants/app_colors.dart';
 import '../controllers/auth_controller.dart';
 import '../controllers/compression_controller.dart';
 import '../services/usage_quota_service.dart';
+import 'PayWall/PaywallDialog.dart';
 
 const int _freePlanMaxMb = 10;
 
 class FilePickerArea extends StatelessWidget {
-  const FilePickerArea({super.key});
+  const FilePickerArea({super.key, this.onUpgradeToPro});
+
+  final VoidCallback? onUpgradeToPro;
 
   @override
   Widget build(BuildContext context) {
@@ -20,15 +24,16 @@ class FilePickerArea extends StatelessWidget {
     return Obx(() {
       final isReady = auth.isAuthenticated.value;
       final quotaExceeded = compression.quotaExceeded.value;
+      final canPick = isReady && !quotaExceeded;
 
       return Column(
         children: [
           if (quotaExceeded) ...[
-            const _QuotaBanner(),
+            _QuotaBanner(onUpgradeToPro: onUpgradeToPro),
             const SizedBox(height: 12),
           ],
           GestureDetector(
-            onTap: isReady ? () => _pickFile(context) : null,
+            onTap: canPick ? () => _pickFile(context) : null,
             child: Container(
               width: double.infinity,
               padding:
@@ -59,28 +64,38 @@ class FilePickerArea extends StatelessWidget {
                         ),
                       ],
                     ),
-                    child: isReady
-                        ? const Icon(
-                            Icons.upload_file_rounded,
-                            size: 32,
-                            color: AppColors.primary,
-                          )
-                        : const SizedBox(
+                    child: !isReady
+                        ? const SizedBox(
                             width: 24,
                             height: 24,
                             child: CircularProgressIndicator(
                               strokeWidth: 2.5,
                               color: AppColors.primary,
                             ),
+                          )
+                        : Icon(
+                            quotaExceeded
+                                ? Icons.lock_outline_rounded
+                                : Icons.upload_file_rounded,
+                            size: 32,
+                            color: quotaExceeded
+                                ? AppColors.textTertiary
+                                : AppColors.primary,
                           ),
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    isReady ? 'Tap to select a PDF file' : 'Initializing…',
-                    style: const TextStyle(
+                    !isReady
+                        ? 'Initializing…'
+                        : quotaExceeded
+                            ? 'File picker disabled — free limit reached'
+                            : 'Tap to select a PDF file',
+                    style: TextStyle(
                       fontSize: 17,
                       fontWeight: FontWeight.w600,
-                      color: AppColors.textPrimary,
+                      color: quotaExceeded
+                          ? AppColors.textSecondary
+                          : AppColors.textPrimary,
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -134,14 +149,11 @@ class FilePickerArea extends StatelessWidget {
       final size = await file.length();
 
       if (size > maxBytes) {
-        Get.snackbar(
-          'File Too Large',
-          '${picked.name} exceeds the ${_freePlanMaxMb}MB limit.',
-          snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: AppColors.errorLight,
-          colorText: AppColors.errorText,
-          margin: const EdgeInsets.all(16),
-          borderRadius: 12,
+        if (!context.mounted) return;
+        await _showFileTooLargeDialog(
+          context,
+          fileName: picked.name,
+          onUpgradeToPro: onUpgradeToPro,
         );
         return;
       }
@@ -161,34 +173,91 @@ class FilePickerArea extends StatelessWidget {
   }
 }
 
-class _QuotaBanner extends StatelessWidget {
-  const _QuotaBanner();
-
-  void _showUpgradeDialog(BuildContext context) {
-    showDialog<void>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text(
-          'Upgrade to Premium',
-          style: TextStyle(fontWeight: FontWeight.w700),
-        ),
-        content: const Text(
-          'Get unlimited PDF compressions, larger file sizes (up to 50 MB), '
-          'and priority processing.\n\nUpgrade once — compress forever.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Maybe later'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Upgrade'),
-          ),
-        ],
+Future<void> _showFileTooLargeDialog(
+  BuildContext context, {
+  required String fileName,
+  VoidCallback? onUpgradeToPro,
+}) async {
+  final compression = Get.find<CompressionController>();
+  await showDialog<void>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      title: const Text(
+        'File Too Large',
+        style: TextStyle(fontWeight: FontWeight.w700),
       ),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              '$fileName exceeds the ${_freePlanMaxMb}MB limit.',
+              style: const TextStyle(
+                fontSize: 15,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 16),
+            const PaywallProBenefitsList(),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () async {
+                  Navigator.of(ctx).pop();
+                  final result = await Get.to(
+                    () => PaywallDialog(fromOnboarding: false),
+                    fullscreenDialog: true,
+                  );
+                  if (result == 'success') {
+                    onUpgradeToPro?.call();
+                    await compression.refreshSubscriptionStatus();
+                  }
+                },
+                icon: SvgPicture.asset(
+                  'assets/svg/crown.svg',
+                  width: 18,
+                  height: 18,
+                ),
+                label: const Text(
+                  'Upgrade to Pro',
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size.fromHeight(48),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  elevation: 0,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+class _QuotaBanner extends StatelessWidget {
+  const _QuotaBanner({this.onUpgradeToPro});
+
+  final VoidCallback? onUpgradeToPro;
+
+  Future<void> _openPaywall() async {
+    final compression = Get.find<CompressionController>();
+    final result = await Get.to(
+      () => PaywallDialog(fromOnboarding: false),
+      fullscreenDialog: true,
     );
+    if (result == 'success') {
+      onUpgradeToPro?.call();
+      await compression.refreshSubscriptionStatus();
+    }
   }
 
   @override
@@ -221,7 +290,7 @@ class _QuotaBanner extends StatelessWidget {
                 const SizedBox(height: 2),
                 Obx(() => Text(
                   "You've compressed ${quota.pagesCompressedTotal} of $kFreeMaxCompressedPages "
-                  'free pages. Upgrade to Premium for unlimited compressions.',
+                  'free pages. Upgrade to Pro for unlimited compressions.',
                   style: const TextStyle(
                     fontSize: 13,
                     color: AppColors.errorText,
@@ -229,20 +298,31 @@ class _QuotaBanner extends StatelessWidget {
                 )),
                 const SizedBox(height: 8),
                 GestureDetector(
-                  onTap: () => _showUpgradeDialog(context),
+                  onTap: _openPaywall,
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
                       color: AppColors.error,
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Text(
-                      'Upgrade to Premium',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white,
-                      ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        SvgPicture.asset(
+                          'assets/svg/crown.svg',
+                          width: 18,
+                          height: 18,
+                        ),
+                        const SizedBox(width: 6),
+                        const Text(
+                          'Upgrade to Pro',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),

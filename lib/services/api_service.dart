@@ -133,11 +133,11 @@ class ApiService extends GetxService {
 
   // ── Upload URL ──
 
-  Future<UploadUrlResponse> getUploadUrl(String filename) async {
+  Future<UploadUrlResponse> getUploadUrl(String filename, {bool isUserPro = false}) async {
     final response =
         await _dio.post('/pdf-compress/mobile/upload-url', data: {
       'filename': filename,
-      'isUserPro': false,
+      'isUserPro': isUserPro,
     });
     return UploadUrlResponse.fromJson(response.data as Map<String, dynamic>);
   }
@@ -169,11 +169,12 @@ class ApiService extends GetxService {
   Future<CompressJobResponse> compress({
     required String sessionId,
     required CompressionLevel level,
+    bool isUserPro = false,
   }) async {
     final response = await _dio.post('/pdf-compress/mobile/compress', data: {
       'session_id': sessionId,
       'level': level.name,
-      'isUserPro': false,
+      'isUserPro': isUserPro,
     });
     return CompressJobResponse.fromJson(response.data as Map<String, dynamic>);
   }
@@ -181,12 +182,13 @@ class ApiService extends GetxService {
   Future<CompressJobResponse> compressToTarget({
     required String sessionId,
     required double targetSizeMb,
+    bool isUserPro = false,
   }) async {
     final response =
         await _dio.post('/pdf-compress/mobile/compress-to-target', data: {
       'session_id': sessionId,
       'target_size_mb': targetSizeMb,
-      'isUserPro': false,
+      'isUserPro': isUserPro,
     });
     return CompressJobResponse.fromJson(response.data as Map<String, dynamic>);
   }

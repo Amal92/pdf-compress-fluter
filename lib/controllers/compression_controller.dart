@@ -7,6 +7,7 @@ import 'package:uuid/uuid.dart';
 import '../models/models.dart';
 import '../services/api_service.dart';
 import '../services/usage_quota_service.dart';
+import '../utils/utils.dart';
 
 class CompressionController extends GetxController {
   final _api = Get.find<ApiService>();
@@ -14,6 +15,7 @@ class CompressionController extends GetxController {
 
   final RxList<FileState> files = <FileState>[].obs;
   final RxBool quotaExceeded = false.obs;
+  final RxBool isUserPro = false.obs;
 
   final Map<String, Timer> _pollingTimers = {};
   final _uuid = const Uuid();
@@ -24,6 +26,14 @@ class CompressionController extends GetxController {
     _quotaService = Get.find<UsageQuotaService>();
     quotaExceeded.value = _quotaService.quotaExceeded.value;
     ever(_quotaService.quotaExceeded, (bool val) => quotaExceeded.value = val);
+    refreshSubscriptionStatus();
+  }
+
+  Future<void> refreshSubscriptionStatus() async {
+    final status = await getSubscriptionStatus();
+    if (status != null) {
+      isUserPro.value = status;
+    }
   }
 
   void addFile({
@@ -55,7 +65,7 @@ class CompressionController extends GetxController {
       if (fileState == null) return;
 
       final uploadUrlRes =
-          await _api.getUploadUrl(fileState.fileName);
+          await _api.getUploadUrl(fileState.fileName, isUserPro: isUserPro.value);
 
       await _api.uploadToS3(
         uploadUrlRes.uploadUrl,
@@ -111,11 +121,13 @@ class CompressionController extends GetxController {
         jobRes = await _api.compressToTarget(
           sessionId: fileState.sessionId!,
           targetSizeMb: settings.targetSizeMb!,
+          isUserPro: isUserPro.value,
         );
       } else {
         jobRes = await _api.compress(
           sessionId: fileState.sessionId!,
           level: settings.level ?? CompressionLevel.balanced,
+          isUserPro: isUserPro.value,
         );
       }
 

@@ -1,6 +1,10 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:get/get.dart';
+import 'package:pdf_compress_mobile/utils/Translation/AppTranslations.dart';
+import 'package:purchases_flutter/purchases_flutter.dart';
 import 'firebase_options.dart';
 import 'bindings/app_binding.dart';
 import 'screens/home_screen.dart';
@@ -8,10 +12,22 @@ import 'constants/app_colors.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  initialiseRevenueCatSdk();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   runApp(const PdfCompressApp());
+}
+
+Future<void> initialiseRevenueCatSdk() async {
+  await Purchases.setLogLevel(LogLevel.verbose);
+
+  PurchasesConfiguration configuration;
+  if (Platform.isAndroid) {
+    configuration = PurchasesConfiguration('goog_kwWbQQvsgcbCMYBUNvDFyNkHAeY');
+    await Purchases.configure(configuration);
+  } else if (Platform.isIOS) {
+    configuration = PurchasesConfiguration('appl_UdzcnVVzWjtDFGBWLqwFjNsdQnl');
+    await Purchases.configure(configuration);
+  }
 }
 
 class PdfCompressApp extends StatelessWidget {
@@ -23,6 +39,9 @@ class PdfCompressApp extends StatelessWidget {
       title: 'CompressPDF',
       debugShowCheckedModeBanner: false,
       initialBinding: AppBinding(),
+      translations: AppTranslations(),
+      locale: Get.deviceLocale,
+      fallbackLocale: Locale('en', 'US'),
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: AppColors.primary),
         scaffoldBackgroundColor: AppColors.background,
