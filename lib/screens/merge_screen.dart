@@ -84,17 +84,20 @@ class _MergeScreenState extends State<MergeScreen> {
       if (!name.toLowerCase().endsWith('.pdf')) continue;
 
       final id = _uuid.v4();
-      final displayName =
-          name.toLowerCase().endsWith('.pdf') ? name.substring(0, name.length - 4) : name;
+      final displayName = name.toLowerCase().endsWith('.pdf')
+          ? name.substring(0, name.length - 4)
+          : name;
       final sizeBytes = await file.length();
 
       setState(() {
-        _items.add(MergePdfItem(
-          id: id,
-          path: path,
-          displayName: displayName,
-          sizeBytes: sizeBytes,
-        ));
+        _items.add(
+          MergePdfItem(
+            id: id,
+            path: path,
+            displayName: displayName,
+            sizeBytes: sizeBytes,
+          ),
+        );
         _processingIds.add(id);
       });
 
@@ -213,14 +216,14 @@ class _MergeScreenState extends State<MergeScreen> {
               'Merge PDF Files',
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.textPrimary,
-                    letterSpacing: -0.5,
-                  ),
+                fontWeight: FontWeight.w800,
+                color: AppColors.textPrimary,
+                letterSpacing: -0.5,
+              ),
             ),
             const SizedBox(height: 12),
             Text(
-              'Combine multiple PDFs into one file.',
+              'Combine multiple PDFs into one file. No files are uploaded to our servers for merging.',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 16,
@@ -239,9 +242,6 @@ class _MergeScreenState extends State<MergeScreen> {
               if (_phase != _MergePhase.done) _buildMergeActions(),
               if (_phase == _MergePhase.done) _buildDoneCard(),
             ],
-            const SizedBox(height: 36),
-            _buildFeatureHighlights(),
-            const SizedBox(height: 24),
           ],
         ),
       ),
@@ -260,10 +260,7 @@ class _MergeScreenState extends State<MergeScreen> {
           decoration: BoxDecoration(
             color: AppColors.panelBackground,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: AppColors.border,
-              width: 2,
-            ),
+            border: Border.all(color: AppColors.border, width: 2),
           ),
           child: Column(
             children: [
@@ -302,10 +299,7 @@ class _MergeScreenState extends State<MergeScreen> {
               const SizedBox(height: 10),
               Text(
                 'You can select multiple files at once',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: AppColors.textTertiary,
-                ),
+                style: TextStyle(fontSize: 12, color: AppColors.textTertiary),
                 textAlign: TextAlign.center,
               ),
             ],
@@ -361,9 +355,7 @@ class _MergeScreenState extends State<MergeScreen> {
                   color: AppColors.textSecondary.withValues(alpha: 0.85),
                 ),
               ),
-              style: TextButton.styleFrom(
-                foregroundColor: AppColors.error,
-              ),
+              style: TextButton.styleFrom(foregroundColor: AppColors.error),
             ),
           ],
         ),
@@ -499,7 +491,11 @@ class _MergeScreenState extends State<MergeScreen> {
               onTap: () => _removeItem(item.id),
               child: const Padding(
                 padding: EdgeInsets.all(4),
-                child: Icon(Icons.close_rounded, size: 16, color: AppColors.textSecondary),
+                child: Icon(
+                  Icons.close_rounded,
+                  size: 16,
+                  color: AppColors.textSecondary,
+                ),
               ),
             ),
           ),
@@ -530,7 +526,11 @@ class _MergeScreenState extends State<MergeScreen> {
                   color: AppColors.primaryLight,
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.add_rounded, color: AppColors.primary, size: 22),
+                child: const Icon(
+                  Icons.add_rounded,
+                  color: AppColors.primary,
+                  size: 22,
+                ),
               ),
               const SizedBox(height: 8),
               Padding(
@@ -582,9 +582,8 @@ class _MergeScreenState extends State<MergeScreen> {
 
   Widget _buildMergeActions() {
     final busy = _phase == _MergePhase.merging;
-    final canMerge = _items.length >= 2 &&
-        !busy &&
-        !_items.any((e) => e.loadingMeta);
+    final canMerge =
+        _items.length >= 2 && !busy && !_items.any((e) => e.loadingMeta);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -605,7 +604,9 @@ class _MergeScreenState extends State<MergeScreen> {
           style: FilledButton.styleFrom(
             backgroundColor: AppColors.primary,
             foregroundColor: Colors.white,
-            disabledBackgroundColor: AppColors.textTertiary.withValues(alpha: 0.35),
+            disabledBackgroundColor: AppColors.textTertiary.withValues(
+              alpha: 0.35,
+            ),
             padding: const EdgeInsets.symmetric(vertical: 14),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
@@ -618,10 +619,7 @@ class _MergeScreenState extends State<MergeScreen> {
             child: Text(
               'Add at least 2 PDFs to merge',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 13,
-                color: AppColors.textTertiary,
-              ),
+              style: TextStyle(fontSize: 13, color: AppColors.textTertiary),
             ),
           ),
       ],
@@ -649,7 +647,11 @@ class _MergeScreenState extends State<MergeScreen> {
                   color: AppColors.success.withValues(alpha: 0.15),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.check_rounded, color: AppColors.success, size: 26),
+                child: const Icon(
+                  Icons.check_rounded,
+                  color: AppColors.success,
+                  size: 26,
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -721,94 +723,5 @@ class _MergeScreenState extends State<MergeScreen> {
     );
   }
 
-  Widget _buildFeatureHighlights() {
-    const data = <({IconData icon, String title, String body})>[
-      (
-        icon: Icons.lock_outline_rounded,
-        title: '100% Private',
-        body:
-            'Your PDFs stay on your device. Merging runs locally in the app.',
-      ),
-      (
-        icon: Icons.bolt_outlined,
-        title: 'Fast & Free',
-        body: 'No account required. Combine PDFs in the order you add them.',
-      ),
-      (
-        icon: Icons.high_quality_outlined,
-        title: 'Original layout',
-        body: 'Pages are composed from each file’s content in order.',
-      ),
-    ];
-
-    return Column(
-      children: [
-        for (var i = 0; i < data.length; i++) ...[
-          if (i > 0) const SizedBox(height: 20),
-          _FeatureTile(
-            icon: data[i].icon,
-            title: data[i].title,
-            body: data[i].body,
-          ),
-        ],
-      ],
-    );
-  }
-
   String _mb(int bytes) => (bytes / (1024 * 1024)).toStringAsFixed(2);
-}
-
-class _FeatureTile extends StatelessWidget {
-  const _FeatureTile({
-    required this.icon,
-    required this.title,
-    required this.body,
-  });
-
-  final IconData icon;
-  final String title;
-  final String body;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          width: 52,
-          height: 52,
-          decoration: BoxDecoration(
-            color: AppColors.primaryLight,
-            borderRadius: BorderRadius.circular(14),
-          ),
-          child: Icon(icon, color: AppColors.primary, size: 26),
-        ),
-        const SizedBox(width: 14),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                body,
-                style: TextStyle(
-                  fontSize: 13,
-                  height: 1.45,
-                  color: AppColors.textSecondary.withValues(alpha: 0.92),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
 }

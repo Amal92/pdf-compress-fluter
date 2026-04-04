@@ -1,8 +1,10 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:pdf_compress_mobile/controllers/compression_controller.dart';
 import 'package:pdf_compress_mobile/utils/utils.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 
@@ -541,6 +543,16 @@ class PaywallDialogState extends State<PaywallDialog> {
     }
   }
 
+  /// Updates app-wide Pro state from RevenueCat before the paywall route pops,
+  /// so UI does not depend on a second [getCustomerInfo] round-trip.
+  void _syncProSubscriptionFrom(CustomerInfo info) {
+    final active = info.entitlements.all['Pro']?.isActive ?? false;
+    if (!Get.isRegistered<CompressionController>()) return;
+    final compression = Get.find<CompressionController>();
+    compression.isUserPro.value = active;
+    unawaited(compression.refreshSubscriptionStatus());
+  }
+
   Future<void> subscribe(Package? package) async {
     try {
       setState(() {
@@ -556,7 +568,7 @@ class PaywallDialogState extends State<PaywallDialog> {
 
         //print(customerInfo.entitlements.toString());
         if (result.customerInfo.entitlements.all["Pro"]?.isActive ?? false) {
-          // Unlock that great "pro" content
+          _syncProSubscriptionFrom(result.customerInfo);
           Get.back(result: 'success');
         }
       }
@@ -591,7 +603,7 @@ class PaywallDialogState extends State<PaywallDialog> {
       // ... check restored purchaserInfo to see if entitlement is now active
       print(customerInfo);
       if (customerInfo.entitlements.all["Pro"]?.isActive ?? false) {
-        // Unlock that great "pro" content
+        _syncProSubscriptionFrom(customerInfo);
         Get.back(result: 'success');
       } else {
         // no subscription available to restore

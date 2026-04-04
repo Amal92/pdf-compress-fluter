@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../constants/app_colors.dart';
+import '../controllers/compression_controller.dart';
 import '../screens/my_data_screen.dart';
 import '../services/usage_quota_service.dart';
 
@@ -13,6 +14,7 @@ class AppHeader extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     final quota = Get.find<UsageQuotaService>();
+    final compression = Get.find<CompressionController>();
 
     return Container(
       decoration: const BoxDecoration(
@@ -53,10 +55,11 @@ class AppHeader extends StatelessWidget implements PreferredSizeWidget {
                 Obx(() {
                   // Rx reads must happen inside this closure so GetX can subscribe.
                   final isUnlimited = quota.unlimited.value;
+                  final isSubscribed = compression.isUserPro.value;
                   final used =
                       quota.usage.value?.totalPagesCompressed ?? 0;
 
-                  if (isUnlimited) {
+                  if (isUnlimited || isSubscribed) {
                     return Container(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 10, vertical: 5),

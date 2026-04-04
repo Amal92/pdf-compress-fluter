@@ -19,7 +19,9 @@ class _CompressHomeTabState extends State<CompressHomeTab> {
   @override
   void initState() {
     super.initState();
-    _confettiController = ConfettiController(duration: const Duration(seconds: 3));
+    _confettiController = ConfettiController(
+      duration: const Duration(seconds: 3),
+    );
   }
 
   @override
@@ -65,6 +67,16 @@ class _CompressHomeTabState extends State<CompressHomeTab> {
                       ),
                       TextSpan(text: ' size you want'),
                     ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'All files are auto deleted after 2 hours from our servers. But you can delete them immediately from My Data screen in settings.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: AppColors.textSecondary.withValues(alpha: 0.85),
+                    height: 1.4,
                   ),
                 ),
                 const SizedBox(height: 28),
@@ -118,4 +130,3 @@ class _CompressHomeTabState extends State<CompressHomeTab> {
     );
   }
 }
-

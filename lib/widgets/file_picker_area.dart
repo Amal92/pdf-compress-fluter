@@ -10,6 +10,7 @@ import '../services/usage_quota_service.dart';
 import 'PayWall/PaywallDialog.dart';
 
 const int _freePlanMaxMb = 10;
+const int _proPlanMaxMb = 50;
 
 class FilePickerArea extends StatelessWidget {
   const FilePickerArea({super.key, this.onUpgradeToPro});
@@ -23,17 +24,20 @@ class FilePickerArea extends StatelessWidget {
 
     return Obx(() {
       final isReady = auth.isAuthenticated.value;
+      final isPro = compression.isUserPro.value;
       final quotaExceeded = compression.quotaExceeded.value;
-      final canPick = isReady && !quotaExceeded;
+      final quotaBlocksFreeUser = quotaExceeded && !isPro;
+      final canPick = isReady && !quotaBlocksFreeUser;
+      final maxMb = isPro ? _proPlanMaxMb : _freePlanMaxMb;
 
       return Column(
         children: [
-          if (quotaExceeded) ...[
+          if (quotaBlocksFreeUser) ...[
             _QuotaBanner(onUpgradeToPro: onUpgradeToPro),
             const SizedBox(height: 12),
           ],
           GestureDetector(
-            onTap: canPick ? () => _pickFile(context) : null,
+            onTap: canPick ? () => _pickFile(context, maxMb: maxMb) : null,
             child: Container(
               width: double.infinity,
               padding:
@@ -74,11 +78,11 @@ class FilePickerArea extends StatelessWidget {
                             ),
                           )
                         : Icon(
-                            quotaExceeded
+                            quotaBlocksFreeUser
                                 ? Icons.lock_outline_rounded
                                 : Icons.upload_file_rounded,
                             size: 32,
-                            color: quotaExceeded
+                            color: quotaBlocksFreeUser
                                 ? AppColors.textTertiary
                                 : AppColors.primary,
                           ),
@@ -87,13 +91,13 @@ class FilePickerArea extends StatelessWidget {
                   Text(
                     !isReady
                         ? 'Initializing…'
-                        : quotaExceeded
+                        : quotaBlocksFreeUser
                             ? 'File picker disabled — free limit reached'
                             : 'Tap to select a PDF file',
                     style: TextStyle(
                       fontSize: 17,
                       fontWeight: FontWeight.w600,
-                      color: quotaExceeded
+                      color: quotaBlocksFreeUser
                           ? AppColors.textSecondary
                           : AppColors.textPrimary,
                     ),
@@ -109,13 +113,15 @@ class FilePickerArea extends StatelessWidget {
                       ),
                       children: [
                         const TextSpan(text: 'Maximum file size: '),
-                        const TextSpan(
-                          text: '${_freePlanMaxMb}MB',
-                          style: TextStyle(fontWeight: FontWeight.w600),
+                        TextSpan(
+                          text: '${maxMb}MB',
+                          style: const TextStyle(fontWeight: FontWeight.w600),
                         ),
-                        const TextSpan(
-                          text: ' · Upgrade for 50MB & multiple files',
-                          style: TextStyle(color: AppColors.textTertiary),
+                        TextSpan(
+                          text: isPro
+                              ? ' · Pro plan'
+                              : ' · Upgrade for 50MB & multiple files',
+                          style: const TextStyle(color: AppColors.textTertiary),
                         ),
                       ],
                     ),
@@ -129,9 +135,9 @@ class FilePickerArea extends StatelessWidget {
     });
   }
 
-  Future<void> _pickFile(BuildContext context) async {
+  Future<void> _pickFile(BuildContext context, {required int maxMb}) async {
     final compression = Get.find<CompressionController>();
-    const maxBytes = _freePlanMaxMb * 1024 * 1024;
+    final maxBytes = maxMb * 1024 * 1024;
 
     try {
       final result = await FilePicker.platform.pickFiles(
@@ -153,6 +159,7 @@ class FilePickerArea extends StatelessWidget {
         await showFileTooLargeDialog(
           context,
           fileName: picked.name,
+          maxMb: maxMb,
           onUpgradeToPro: onUpgradeToPro,
         );
         return;
