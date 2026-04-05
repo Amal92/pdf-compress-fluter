@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:intl/intl.dart';
 import 'package:pdf_compress_mobile/controllers/compression_controller.dart';
 import 'package:pdf_compress_mobile/utils/utils.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
@@ -27,10 +28,7 @@ class PaywallProBenefitsList extends StatelessWidget {
             Expanded(
               child: Text(
                 'Compress Unlimited PDFs',
-                style: TextStyle(
-                  fontWeight: FontWeight.normal,
-                  fontSize: 16.0,
-                ),
+                style: TextStyle(fontWeight: FontWeight.normal, fontSize: 16.0),
               ),
             ),
           ],
@@ -44,10 +42,7 @@ class PaywallProBenefitsList extends StatelessWidget {
             Expanded(
               child: Text(
                 'Compress PDFs with file sizes up to 50MB',
-                style: TextStyle(
-                  fontWeight: FontWeight.normal,
-                  fontSize: 16.0,
-                ),
+                style: TextStyle(fontWeight: FontWeight.normal, fontSize: 16.0),
               ),
             ),
           ],
@@ -61,10 +56,7 @@ class PaywallProBenefitsList extends StatelessWidget {
             Expanded(
               child: Text(
                 'Batch Compress Multiple PDFs at Once',
-                style: TextStyle(
-                  fontWeight: FontWeight.normal,
-                  fontSize: 16.0,
-                ),
+                style: TextStyle(fontWeight: FontWeight.normal, fontSize: 16.0),
               ),
             ),
           ],
@@ -88,18 +80,29 @@ class PaywallDialogState extends State<PaywallDialog> {
   int currentSelected = 1;
   Package? weeklyPackage;
   Package? annualPackage;
+  Package? monthlyPackage;
 
   String annualPrice = "";
   String weeklyPrice = "";
+  String monthlyPrice = "";
+  String annualEquivalentPerMonthString = "";
   String freeTrialPeriod = "";
   String savePercentage = "";
+
+  bool get _hasMonthly => monthlyPackage != null;
+
+  int get _weeklyCardIndex => _hasMonthly ? 2 : 1;
 
   var subscriptionOnGoing = false;
 
   @override
   void initState() {
-    getOfferings();
     super.initState();
+    getOfferings();
+  }
+
+  static String _formatCurrencyAmount(double amount, String currencyCode) {
+    return NumberFormat.simpleCurrency(name: currencyCode).format(amount);
   }
 
   @override
@@ -182,32 +185,46 @@ class PaywallDialogState extends State<PaywallDialog> {
                               }),
                               style: TextStyle(fontSize: 16.0),
                             ),
+                            if (annualEquivalentPerMonthString.isNotEmpty) ...[
+                              const SizedBox(height: 2.0),
+                              Text(
+                                'paywall_annual_per_month_hint'.trParams({
+                                  'price': annualEquivalentPerMonthString,
+                                }),
+                                style: TextStyle(
+                                  fontSize: 14.0,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                            ],
                           ],
                         ),
                         Spacer(),
-                        Container(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 8.0,
-                            vertical: 4.0,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.redAccent,
-                            borderRadius: BorderRadius.circular(
-                              8,
-                            ), // Rounded corners (optional)
-                          ),
-                          child: Text(
-                            'paywall_save_percentage'.trParams({
-                              'percentage': '$savePercentage%',
-                            }),
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w600,
-                              fontSize: 12.0,
+                        if (savePercentage.isNotEmpty)
+                          Container(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 8.0,
+                              vertical: 4.0,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.redAccent,
+                              borderRadius: BorderRadius.circular(
+                                8,
+                              ), // Rounded corners (optional)
+                            ),
+                            child: Text(
+                              'paywall_save_percentage'.trParams({
+                                'percentage': '$savePercentage%',
+                              }),
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 12.0,
+                              ),
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 8.0),
+                        if (savePercentage.isNotEmpty)
+                          const SizedBox(width: 8.0),
                         currentSelected == 0
                             ? Icon(
                                 Icons.radio_button_checked,
@@ -218,11 +235,68 @@ class PaywallDialogState extends State<PaywallDialog> {
                     ),
                   ),
                 ),
+                if (monthlyPackage != null) ...[
+                  const SizedBox(height: 8.0),
+                  GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        currentSelected = 1;
+                      });
+                    },
+                    child: Container(
+                      width: double.infinity,
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 16.0,
+                        vertical: 8.0,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        border: Border.all(
+                          color: currentSelected == 1
+                              ? Color(0xFFFF3680)
+                              : Colors.black26,
+                          width: 1,
+                        ),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'paywall_monthly_plan'.tr,
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 18.0,
+                                ),
+                              ),
+                              const SizedBox(height: 4.0),
+                              Text(
+                                'paywall_per_month'.trParams({
+                                  'price': monthlyPrice,
+                                }),
+                                style: TextStyle(fontSize: 16.0),
+                              ),
+                            ],
+                          ),
+                          Spacer(),
+                          currentSelected == 1
+                              ? Icon(
+                                  Icons.radio_button_checked,
+                                  color: Color(0xFFFF3680),
+                                )
+                              : Icon(Icons.radio_button_off, color: Colors.grey),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 8.0),
                 GestureDetector(
                   onTap: () {
                     setState(() {
-                      currentSelected = 1;
+                      currentSelected = _weeklyCardIndex;
                     });
                   },
                   child: Container(
@@ -234,7 +308,7 @@ class PaywallDialogState extends State<PaywallDialog> {
                     decoration: BoxDecoration(
                       color: Colors.white,
                       border: Border.all(
-                        color: currentSelected == 1
+                        color: currentSelected == _weeklyCardIndex
                             ? Color(0xFFFF3680)
                             : Colors.black26, // Border color
                         width: 1, // Border width
@@ -273,7 +347,7 @@ class PaywallDialogState extends State<PaywallDialog> {
                           ],
                         ),
                         Spacer(),
-                        currentSelected == 1
+                        currentSelected == _weeklyCardIndex
                             ? Icon(
                                 Icons.radio_button_checked,
                                 color: Color(0xFFFF3680),
@@ -308,12 +382,12 @@ class PaywallDialogState extends State<PaywallDialog> {
                         ),
                         Spacer(),
                         Switch(
-                          value: currentSelected == 1,
+                          value: currentSelected == _weeklyCardIndex,
                           activeColor: Color(0xFFFF3680),
                           onChanged: (bool value) {
                             if (value) {
                               setState(() {
-                                currentSelected = 1;
+                                currentSelected = _weeklyCardIndex;
                               });
                             } else {
                               setState(() {
@@ -333,7 +407,9 @@ class PaywallDialogState extends State<PaywallDialog> {
                     onPressed: () {
                       if (currentSelected == 0) {
                         subscribe(annualPackage);
-                      } else if (currentSelected == 1) {
+                      } else if (_hasMonthly && currentSelected == 1) {
+                        subscribe(monthlyPackage);
+                      } else {
                         subscribe(weeklyPackage);
                       }
                     },
@@ -393,9 +469,7 @@ class PaywallDialogState extends State<PaywallDialog> {
                     ),
                     GestureDetector(
                       onTap: () {
-                        openUrl(
-                          'https://basastudios.com/videotomp3/terms-of-service/',
-                        );
+                        openUrl('https://compresspdftoanysize.com/terms');
                       },
                       child: Text(
                         'paywall_terms'.tr,
@@ -407,7 +481,7 @@ class PaywallDialogState extends State<PaywallDialog> {
                     ),
                     GestureDetector(
                       onTap: () {
-                        openUrl('https://basastudios.com/videotomp3/privacy/');
+                        openUrl('https://compresspdftoanysize.com/privacy');
                       },
                       child: Text(
                         'paywall_privacy_policy'.tr,
@@ -428,29 +502,32 @@ class PaywallDialogState extends State<PaywallDialog> {
   }
 
   String getCtaButtonText() {
-    if (currentSelected == 0 || currentSelected == 2) {
+    if (currentSelected == 0 || (_hasMonthly && currentSelected == 1)) {
       return 'Unlock Now';
-    } else {
+    }
+    if (currentSelected == _weeklyCardIndex) {
       if (freeTrialPeriod.isEmpty) {
         return 'Unlock Now';
-      } else {
-        return 'Start $freeTrialPeriod Free Trial';
       }
+      return 'Start $freeTrialPeriod Free Trial';
     }
+    return 'Unlock Now';
   }
 
   String getCtaButtonSubText() {
     if (currentSelected == 0) {
       return '$annualPrice/year. Cancel anytime';
-    } else if (currentSelected == 1) {
+    }
+    if (_hasMonthly && currentSelected == 1) {
+      return '$monthlyPrice/month. Cancel anytime';
+    }
+    if (currentSelected == _weeklyCardIndex) {
       if (freeTrialPeriod.isEmpty) {
         return '$weeklyPrice/week. Cancel anytime';
-      } else {
-        return 'then $weeklyPrice/week. Cancel anytime';
       }
-    } else {
-      return "Buy once. Own for life.";
+      return 'then $weeklyPrice/week. Cancel anytime';
     }
+    return '$annualPrice/year. Cancel anytime';
   }
 
   Future<void> getOfferings() async {
@@ -461,9 +538,21 @@ class PaywallDialogState extends State<PaywallDialog> {
         // Display packages for sale
         weeklyPackage = offerings.current?.weekly;
         annualPackage = offerings.current?.annual;
+        monthlyPackage = offerings.current?.monthly;
 
         annualPrice = annualPackage?.storeProduct.priceString ?? '';
         weeklyPrice = weeklyPackage?.storeProduct.priceString ?? '';
+        monthlyPrice = monthlyPackage?.storeProduct.priceString ?? '';
+
+        annualEquivalentPerMonthString = '';
+        if (monthlyPackage != null &&
+            annualPackage != null &&
+            annualPackage!.storeProduct.price > 0) {
+          annualEquivalentPerMonthString = _formatCurrencyAmount(
+            annualPackage!.storeProduct.price / 12,
+            annualPackage!.storeProduct.currencyCode,
+          );
+        }
 
         if (weeklyPackage != null &&
             weeklyPackage!.storeProduct.introductoryPrice != null) {
@@ -518,6 +607,8 @@ class PaywallDialogState extends State<PaywallDialog> {
 
         calculateSavePercentage();
 
+        currentSelected = _weeklyCardIndex;
+
         setState(() {});
 
         print('Store product details:  ${offerings.current}');
@@ -529,17 +620,23 @@ class PaywallDialogState extends State<PaywallDialog> {
   }
 
   void calculateSavePercentage() {
-    final annualPrice = annualPackage?.storeProduct.price;
+    savePercentage = '';
+    final annual = annualPackage?.storeProduct.price;
+    final monthly = monthlyPackage?.storeProduct.price;
     final weekPrice = weeklyPackage?.storeProduct.price;
 
-    if (annualPrice != null && weekPrice != null) {
+    if (annual != null && monthly != null && monthly > 0) {
+      final yearAtMonthlyRate = monthly * 12;
+      final pct = ((yearAtMonthlyRate - annual) / yearAtMonthlyRate) * 100;
+      if (pct > 0) {
+        savePercentage = pct.round().toString();
+      }
+    } else if (annual != null && weekPrice != null && weekPrice > 0) {
       final totalWeekly = weekPrice * 52;
-      final localPercentSaved =
-          ((totalWeekly - annualPrice) / totalWeekly) * 100;
-
-      savePercentage = localPercentSaved.round().toString();
-    } else {
-      print("Pricing data is incomplete.");
+      final pct = ((totalWeekly - annual) / totalWeekly) * 100;
+      if (pct > 0) {
+        savePercentage = pct.round().toString();
+      }
     }
   }
 

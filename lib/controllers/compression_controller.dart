@@ -24,9 +24,17 @@ class CompressionController extends GetxController {
   void onInit() {
     super.onInit();
     _quotaService = Get.find<UsageQuotaService>();
-    quotaExceeded.value = _quotaService.quotaExceeded.value;
-    ever(_quotaService.quotaExceeded, (bool val) => quotaExceeded.value = val);
+    _syncQuotaFromUsage();
+    ever(_quotaService.usage, (_) => _syncQuotaFromUsage());
+    ever(isUserPro, (_) => _syncQuotaFromUsage());
     refreshSubscriptionStatus();
+  }
+
+  /// Free-tier quota from usage counts + RevenueCat [isUserPro] only (not API `unlimited`).
+  void _syncQuotaFromUsage() {
+    final total = _quotaService.usage.value?.totalPagesCompressed ?? 0;
+    quotaExceeded.value =
+        !isUserPro.value && total >= kFreeMaxCompressedPages;
   }
 
   Future<void> refreshSubscriptionStatus() async {
@@ -64,22 +72,26 @@ class CompressionController extends GetxController {
       final fileState = _getFile(id);
       if (fileState == null) return;
 
-      final uploadUrlRes =
-          await _api.getUploadUrl(fileState.fileName, isUserPro: isUserPro.value);
-
-      await _api.uploadToS3(
-        uploadUrlRes.uploadUrl,
-        fileState.filePath,
-        (sent, total) {
-          if (total > 0) {
-            final progress = ((sent / total) * 100).round();
-            _updateFile(id, (f) => f.copyWith(
-                  status: FileStatus.uploading,
-                  uploadProgress: progress,
-                ));
-          }
-        },
+      final uploadUrlRes = await _api.getUploadUrl(
+        fileState.fileName,
+        isUserPro: isUserPro.value,
       );
+
+      await _api.uploadToS3(uploadUrlRes.uploadUrl, fileState.filePath, (
+        sent,
+        total,
+      ) {
+        if (total > 0) {
+          final progress = ((sent / total) * 100).round();
+          _updateFile(
+            id,
+            (f) => f.copyWith(
+              status: FileStatus.uploading,
+              uploadProgress: progress,
+            ),
+          );
+        }
+      });
 
       _updateFile(
         id,
@@ -94,7 +106,9 @@ class CompressionController extends GetxController {
       _updateFile(id, (f) => f.copyWith(status: FileStatus.failed, error: msg));
     } catch (e) {
       _updateFile(
-          id, (f) => f.copyWith(status: FileStatus.failed, error: e.toString()));
+        id,
+        (f) => f.copyWith(status: FileStatus.failed, error: e.toString()),
+      );
     }
   }
 
@@ -142,13 +156,11 @@ class CompressionController extends GetxController {
       _startPolling(id, jobRes.jobId);
     } on DioException catch (e) {
       if (ApiService.isQuotaExceeded(e)) {
-        // Refresh usage for free users so UsageQuotaService drives quotaExceeded;
-        // for unlimited users this is a server-side anomaly — don't block them.
-        _quotaService.refreshIfFree();
+        _quotaService.refreshUsageIfFreeTier(isUserPro.value);
         _updateFile(
           id,
           (f) => f.copyWith(
-            status: _quotaService.unlimited.value
+            status: isUserPro.value
                 ? FileStatus.failed
                 : FileStatus.quotaExceeded,
             error: ApiService.extractErrorMessage(e),
@@ -165,7 +177,9 @@ class CompressionController extends GetxController {
       }
     } catch (e) {
       _updateFile(
-          id, (f) => f.copyWith(status: FileStatus.failed, error: e.toString()));
+        id,
+        (f) => f.copyWith(status: FileStatus.failed, error: e.toString()),
+      );
     }
   }
 
@@ -184,14 +198,15 @@ class CompressionController extends GetxController {
       switch (status.status) {
         case 'queued':
           _updateFile(
-              fileId,
-              (f) =>
-                  f.copyWith(compressionStatus: CompressionJobStatus.queued));
+            fileId,
+            (f) => f.copyWith(compressionStatus: CompressionJobStatus.queued),
+          );
         case 'processing':
           _updateFile(
-              fileId,
-              (f) => f.copyWith(
-                  compressionStatus: CompressionJobStatus.processing));
+            fileId,
+            (f) =>
+                f.copyWith(compressionStatus: CompressionJobStatus.processing),
+          );
         case 'done':
           _pollingTimers[fileId]?.cancel();
           _pollingTimers.remove(fileId);
@@ -206,17 +221,19 @@ class CompressionController extends GetxController {
               targetReached: status.targetReached,
             ),
           );
-          _quotaService.refreshIfFree();
+          _quotaService.refreshUsageIfFreeTier(isUserPro.value);
         case 'failed':
           _pollingTimers[fileId]?.cancel();
           _pollingTimers.remove(fileId);
           final errorMsg = status.error ?? 'Compression failed.';
           final isQuota = errorMsg.toLowerCase().contains('quota');
-          if (isQuota) _quotaService.refreshIfFree();
+          if (isQuota) {
+            _quotaService.refreshUsageIfFreeTier(isUserPro.value);
+          }
           _updateFile(
             fileId,
             (f) => f.copyWith(
-              status: (isQuota && !_quotaService.unlimited.value)
+              status: (isQuota && !isUserPro.value)
                   ? FileStatus.quotaExceeded
                   : FileStatus.failed,
               error: errorMsg,
@@ -228,10 +245,11 @@ class CompressionController extends GetxController {
           _updateFile(
             fileId,
             (f) => f.copyWith(
-                status: FileStatus.uploaded,
-                jobId: null,
-                compressionStatus: null,
-                compressionSettings: null),
+              status: FileStatus.uploaded,
+              jobId: null,
+              compressionStatus: null,
+              compressionSettings: null,
+            ),
           );
       }
     } catch (_) {}
@@ -307,7 +325,10 @@ class CompressionController extends GetxController {
   }
 
   void retryUpload(String fileId) {
-    _updateFile(fileId, (f) => f.copyWith(status: FileStatus.pending, error: null));
+    _updateFile(
+      fileId,
+      (f) => f.copyWith(status: FileStatus.pending, error: null),
+    );
     _uploadFile(fileId);
   }
 

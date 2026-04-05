@@ -7,7 +7,10 @@ class AppTranslations extends Translations {
       // Paywall Dialog
       'paywall_unlimited_access': 'Unlimited Access',
       'paywall_per_year': '@price per year',
+      'paywall_annual_per_month_hint': '(@price/month)',
       'paywall_save_percentage': 'SAVE @percentage',
+      'paywall_monthly_plan': 'Monthly Plan',
+      'paywall_per_month': '@price per month',
       'paywall_weekly_plan': 'Weekly Plan',
       'paywall_trial_period': '@trialPeriod Trial',
       'paywall_per_week': '@price per week',

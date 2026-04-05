@@ -52,6 +52,7 @@ dependencies:
   flutter_secure_storage: ^9.2.4
 
   # Utilities
+  intl: ^0.19.0
   uuid: ^4.5.1
   url_launcher: ^6.3.2
   confetti: ^0.8.0

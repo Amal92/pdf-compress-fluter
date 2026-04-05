@@ -9,32 +9,23 @@ class UsageQuotaService extends GetxService {
   final _api = Get.find<ApiService>();
 
   final Rx<UsageResponse?> usage = Rx<UsageResponse?>(null);
-  final RxBool quotaExceeded = false.obs;
-  final RxBool unlimited = false.obs;
 
   int get pagesCompressedTotal => usage.value?.totalPagesCompressed ?? 0;
 
   Future<void> fetchUsage() async {
     try {
       final u = await _api.getUsage();
-      _applyUsage(u);
+      usage.value = u;
     } catch (_) {
-      // Silently ignore — server errors for usage are non-fatal; quota state
-      // stays at whatever was last known (or default: not exceeded).
+      // Silently ignore — server errors for usage are non-fatal; usage state
+      // stays at whatever was last known.
     }
   }
 
-  /// Call after a successful compress job. Skips the network call when the
-  /// user is already on an unlimited plan — no quota to track there.
-  Future<void> refreshIfFree() async {
-    if (unlimited.value) return;
+  /// Refreshes usage counts from the server for free-tier users only.
+  /// Pro vs free is determined by RevenueCat ([isUserPro]), not the usage API.
+  Future<void> refreshUsageIfFreeTier(bool isUserPro) async {
+    if (isUserPro) return;
     await fetchUsage();
-  }
-
-  void _applyUsage(UsageResponse u) {
-    usage.value = u;
-    unlimited.value = u.unlimited;
-    quotaExceeded.value =
-        !u.unlimited && u.totalPagesCompressed >= kFreeMaxCompressedPages;
   }
 }

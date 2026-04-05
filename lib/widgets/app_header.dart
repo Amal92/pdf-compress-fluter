@@ -54,20 +54,19 @@ class AppHeader extends StatelessWidget implements PreferredSizeWidget {
                 const Spacer(),
                 Obx(() {
                   // Rx reads must happen inside this closure so GetX can subscribe.
-                  final isUnlimited = quota.unlimited.value;
                   final isSubscribed = compression.isUserPro.value;
-                  final used =
-                      quota.usage.value?.totalPagesCompressed ?? 0;
+                  final used = quota.usage.value?.totalPagesCompressed ?? 0;
 
-                  if (isUnlimited || isSubscribed) {
+                  if (isSubscribed) {
                     return Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 5),
+                        horizontal: 10,
+                        vertical: 5,
+                      ),
                       decoration: BoxDecoration(
                         color: AppColors.successLight,
                         borderRadius: BorderRadius.circular(20),
-                        border:
-                            Border.all(color: AppColors.successBorder),
+                        border: Border.all(color: AppColors.successBorder),
                       ),
                       child: const Text(
                         'Pro',
@@ -80,13 +79,17 @@ class AppHeader extends StatelessWidget implements PreferredSizeWidget {
                     );
                   }
 
-                  final remaining = (kFreeMaxCompressedPages - used)
-                      .clamp(0, kFreeMaxCompressedPages);
+                  final remaining = (kFreeMaxCompressedPages - used).clamp(
+                    0,
+                    kFreeMaxCompressedPages,
+                  );
                   final isNearLimit = remaining <= 5;
 
                   return Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 5),
+                      horizontal: 10,
+                      vertical: 5,
+                    ),
                     decoration: BoxDecoration(
                       color: isNearLimit
                           ? AppColors.warningLight
